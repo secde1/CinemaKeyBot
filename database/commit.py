@@ -11,7 +11,7 @@ async def create_user(telegram_id: int, username: str):
 
 
 def get_users():
-    return User.get_data()
+    return User.get_all()
 
 
 def create_movie(post_id: int, file_id: str, caption: str) -> int:

@@ -4,13 +4,19 @@ from database.connect import cur, conn
 class User:
     @staticmethod
     def get_data(telegram_id: str):
-        cur.execute('SELECT * FROM users WHERE user_id =%s', (telegram_id,))
+        cur.execute('SELECT * FROM users WHERE user_id = %s', (telegram_id,))
         return cur.fetchone()
 
     @staticmethod
     def create_data(telegram_id: str, username: str):
-        cur.execute('INSERT INTO users (user_id, username) VALUES (%s, %s)', (username, telegram_id))
+        # Исправлен порядок параметров в соответствии с таблицей в БД
+        cur.execute('INSERT INTO users (user_id, username) VALUES (%s, %s)', (telegram_id, username))
         conn.commit()
+
+    @staticmethod
+    def get_all():
+        cur.execute('SELECT * FROM users')
+        return cur.fetchall()  # Возвращает список всех пользователей
 
 
 class Movie:
@@ -31,6 +37,18 @@ class Movie:
         query = 'SELECT * FROM movies WHERE file_id = %s'
         cur.execute(query, (file_id,))
         return cur.fetchone()
+
+    @staticmethod
+    def get_movie_count():
+        query = 'SELECT * FROM movies'
+        cur.execute(query)
+        return cur.fetchone()[0]
+
+    @staticmethod
+    def get_popular_movies(limit=5):
+        query = 'SELECT * FROM movies ORDER BY views DESC LIMIT %s'
+        cur.execute(query, (limit,))
+        return cur.fetchall()
 
     @staticmethod
     def delete_movie(post_id: int):
