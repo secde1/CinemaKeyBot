@@ -20,7 +20,8 @@ admin = ADMIN
 async def start(message: types.message):
     user_created = await create_user(message.from_user.id, message.from_user.username)
     if user_created:
-        await message.answer(f"Привет! Добро пожаловать {message.from_user.username}")
+        await message.answer(f"Привет! Добро пожаловать {message.from_user.username}"
+                             f"Можете найти фил")
     else:
         pass
 
@@ -172,6 +173,33 @@ async def back_to_menu(message: types.Message, state: FSMContext):
         await message.answer("Вы вернулись в административное меню:", reply_markup=admin_button())
     else:
         pass
+
+
+class MovieState(StatesGroup):
+    waiting_for_movie_code = State()
+
+
+@dp.message_handler(commands=['get_movie'], state="*")
+async def command_get_movie(message: types.Message, state: FSMContext):
+    await MovieState.waiting_for_movie_code.set()
+    await message.reply("Пожалуйста, отправьте код фильма.")
+
+
+@dp.message_handler(lambda message: message.text.isdigit(), state=MovieState.waiting_for_movie_code)
+async def send_movie_by_code(message: types.Message, state: FSMContext):
+    movie_data = get_movie(int(message.text))
+    if movie_data:
+        try:
+            await bot.send_video(chat_id=message.from_user.id, video=movie_data[0],
+                                 caption=f"{movie_data[1]}\n\n🤖 Наш бот: @piratsbot")
+            await state.finish()
+        except Exception as e:
+            print(e)
+            await message.reply("Произошла ошибка при отправке фильма. Пожалуйста, попробуйте позже.")
+            await state.finish()
+    else:
+        await message.reply(f"Фильм с кодом {message.text} не найден")
+        await state.finish()
 
 
 async def startup(dp):
