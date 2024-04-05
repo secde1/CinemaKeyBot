@@ -5,7 +5,8 @@ def admin_button():
     button = ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True, row_width=True)
     movie_catalog = KeyboardButton('Каталогом фильмов')
     user_management = KeyboardButton('Управление пользователями')
-    statistics_and_analytics = KeyboardButton('Статистика и аналитика')
+    statistics_and_analytics = KeyboardButton('Отправить рекламу')
+    # statistics_and_analytics = KeyboardButton('Статистика и аналитика')
     return button.add(movie_catalog, user_management, statistics_and_analytics)
 
 

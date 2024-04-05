@@ -1,3 +1,5 @@
+from psycopg2.extras import DictCursor
+
 from database.connect import cur, conn
 
 
@@ -15,8 +17,9 @@ class User:
 
     @staticmethod
     def get_all():
-        cur.execute('SELECT * FROM users')
-        return cur.fetchall()  # Возвращает список всех пользователей
+        with conn.cursor(cursor_factory=DictCursor) as cur:
+            cur.execute('SELECT user_id FROM users')
+            return cur.fetchall()
 
 
 class Movie:
