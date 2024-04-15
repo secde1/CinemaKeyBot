@@ -19,6 +19,7 @@ admin = ADMIN
 @dp.message_handler(commands=['start'])
 async def start(message: types.Message):
     user_created = await create_user(message.from_user.id, message.from_user.username)
+
     if user_created:
         await message.answer(
             f"Привет, {message.from_user.username}! Добро пожаловать в наш кинобот 🎥\n\n"
@@ -60,7 +61,7 @@ async def admin_add_amovie(message: types.Message):
 @dp.message_handler(state=AddMovieState.media, content_types=types.ContentType.ANY)
 async def handle_video(msg: types.Message, state: FSMContext):
     try:
-        if msg.text == "❌":
+        if msg.text == "Назад":
             await msg.answer("Загрузка фильма отменена", reply_markup=exit_button())
             await state.finish()
         else:
@@ -84,7 +85,7 @@ async def handle_media_id(msg: types.Message, state: FSMContext):
                          reply_markup=exit_button())
         return
 
-    if post_id_text == "❌":
+    if post_id_text == "Назад":
         await msg.answer("Загрузка фильма отменена", reply_markup=movie_button())
         await state.finish()
         return
@@ -109,7 +110,7 @@ async def delete_movie(message: types.Message):
 
 @dp.message_handler(state=DeleteMovieState.post_id)
 async def process_delete_movie(message: types.Message, state: FSMContext):
-    if message.text == "❌":
+    if message.text == "Назад":
         await message.answer('Удаление фильма отменено.', reply_markup=movie_button())
         await state.finish()
     else:
@@ -120,17 +121,22 @@ async def process_delete_movie(message: types.Message, state: FSMContext):
 
 @dp.message_handler(Text('Редактировать фильм'))
 async def edit_movie(message: types.Message):
-    # if message.from_user.id in admin:
-    #     await message.answer('У вас нет доступа к этой команде.')
-    #     return
     movies_count = Movie.get_movie_count()
     await message.answer(f"Всего фильмов в базе: {movies_count}")
+
+    all_movies = Movie.get_all_movies()
+    response = "Список фильмов в базе:\n\n"
+    for movie in all_movies:
+        response += f"ID: {movie['id']}, Caption: {movie['caption']}, POST_ID: {'post_id'}\n\n\n"
+
+    await message.answer(response)
 
     popular_movies = Movie.get_popular_movies(limit=5)
     response = "Самые популярные фильмы:\n\n"
     for movie in popular_movies:
-        response += f"{movie['caption']} - Просмотры: {movie['views']}\n"
-        await message.answer(response)
+        response += f"{movie['caption']} - Просмотры: {movie['views']}\n\n\n"
+
+    await message.answer(response)
 
 
 @dp.message_handler(Text('Управление пользователями'))
@@ -144,7 +150,13 @@ async def admin_user_management(message: types.Message):
 @dp.message_handler(lambda message: 'Отправить рекламу' in message.text, state='*')
 async def advertisement_start(message: types.Message):
     await AdvertisementState.waiting_for_ad.set()
-    await message.answer('Пожалуйста, отправьте рекламное сообщение, фото или видео.')
+    await message.answer('Пожалуйста, отправьте рекламное сообщение, фото или видео.', reply_markup=exit_button())
+
+
+@dp.message_handler(Text(equals="Назад"), state=AdvertisementState.waiting_for_ad)
+async def back_to_menu_advertisement(message: types.Message, state: FSMContext):
+    await state.finish()
+    await message.answer("Вы вернулись в административное меню:", reply_markup=admin_button())
 
 
 @dp.message_handler(content_types=['text', 'photo', 'video'], state=AdvertisementState.waiting_for_ad)
@@ -167,8 +179,10 @@ async def send_advertisement(message: types.Message, state: FSMContext):
 
 @dp.message_handler(Text('Просмотреть всех пользователей'))
 async def user_management(message: types.Message):
-    users_count = User.get_all()
-    await message.answer(f"Количество пользователей: {len(users_count)}")
+    users = User.get_all()
+    usernames = [f"@{user['username']}" for user in users]
+    usernames_text = '\n'.join(usernames)
+    await message.answer(f"Username пользователей: {len(users)}\n\n{usernames_text}")
 
 
 @dp.message_handler(Text('Заблокировать пользователя'))
@@ -207,7 +221,7 @@ async def send_movie_by_code(message: types.Message, state: FSMContext):
     if movie_data:
         try:
             await bot.send_video(chat_id=message.from_user.id, video=movie_data[0],
-                                 caption=f"{movie_data[1]}\n\n🤖 Наш бот: @piratsbot")
+                                 caption=f"{movie_data[1]}\n\n🤖 Наш бот: @CinemaKeybot")
             await state.finish()
         except Exception as e:
             print(e)
@@ -216,6 +230,12 @@ async def send_movie_by_code(message: types.Message, state: FSMContext):
     else:
         await message.reply(f"Фильм с кодом {message.text} не найден")
         await state.finish()
+
+
+@dp.message_handler(lambda message: True)
+async def handle_all_messages(message: types.Message):
+    if '/get_movie' not in message.text:
+        await message.answer("Чтобы найти фильм, отправьте код команды /get_movie.")
 
 
 async def startup(dp):

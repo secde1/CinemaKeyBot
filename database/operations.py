@@ -18,7 +18,7 @@ class User:
     @staticmethod
     def get_all():
         with conn.cursor(cursor_factory=DictCursor) as cur:
-            cur.execute('SELECT user_id FROM users')
+            cur.execute('SELECT user_id, username FROM users')
             return cur.fetchall()
 
 
@@ -28,6 +28,12 @@ class Movie:
         query = 'INSERT INTO movies (post_id, file_id, caption) VALUES (%s, %s, %s)'
         cur.execute(query, (post_id, file_id, caption))
         conn.commit()
+
+    @staticmethod
+    def get_all_movies():
+        query = 'SELECT * FROM movies'
+        cur.execute(query)
+        return cur.fetchall()
 
     @staticmethod
     def get_data(post_id: int):
